@@ -12,7 +12,7 @@ const ENEMY_SPEED_DIVISOR = 50
 const BALL_SPEED_DIVISOR = 2
 const MINIMUM_SPEED = 20
 const ENEMY_BALL_SPEED = 100
-const BLUE_COLOR = "Cornflowerblue"
+const BLUE_COLOR = "Purple"
 const RED_COLOR = "IndianRed"
 const HOOP = {
   xPos: visualViewport.width / 3,
@@ -31,12 +31,6 @@ let ball = {
   color: "Orange"
 }
 let enemies = [
-  {
-    xPos: visualViewport.width / 2,
-    yPos: visualViewport.height / 2.75,
-    xVelocity: 0,
-    yVelocity: 0
-  },
   {
     xPos: visualViewport.width / 6,
     yPos: visualViewport.height / 1.65,
@@ -61,19 +55,39 @@ let isThrowing = false
 let offensiveTeam = teammates
 let ballPossessor = {}
 
-function initializeGame() {
+function startGame() {
   canvas = document.getElementById("canvas")
   canvas.width = visualViewport.width
   canvas.height = visualViewport.height
   context = canvas.getContext('2d')
   document.addEventListener("touchstart", handleTouchstart)
   document.addEventListener("touchmove", handleTouchmove, { passive: false })
-  gameLoop()
+  loopGame()
 }
 
-function gameLoop() {
+function handleTouchstart(e) {
+  touchstart.xPos = e.touches[0].clientX
+  touchstart.yPos = e.touches[0].clientY
+  if (
+    isClose(touchstart, ball) ||
+    touchstart.yPos > canvas.height - canvas.height / 5
+  ) {
+    isThrowing = true
+  } else {
+    addTeammate(touchstart)
+  }
+}
+
+function handleTouchmove(e) {
+  e.preventDefault()
+  if (isThrowing) {
+    ball.xVelocity = (e.touches[0].clientX - touchstart.xPos) / BALL_SPEED_DIVISOR
+    ball.yVelocity = (e.touches[0].clientY - touchstart.yPos) / BALL_SPEED_DIVISOR
+  }
+}
+
+function loopGame() {
   context.clearRect(0, 0, canvas.width, canvas.height)
-  decideEnemyPaths()
   moveEnemies()
   moveBall()
   for (let i = 0; i < Object.keys(WALLS).length; i++) {
@@ -98,48 +112,21 @@ function gameLoop() {
   drawEnemies()
   drawTeammates()
   drawBall()
-  setTimeout(gameLoop, MILLISECONDS_PER_FRAME)
+  setTimeout(loopGame, MILLISECONDS_PER_FRAME)
 }
 
-//////////
-
-function handleTouchstart(e) {
-  touchstart.xPos = e.touches[0].clientX
-  touchstart.yPos = e.touches[0].clientY
-  if (
-    isClose(touchstart, ball) ||
-    touchstart.yPos > canvas.height - canvas.height / 5
-  ) {
-    isThrowing = true
-  } else {
-    addTeammate(touchstart)
+function moveEnemies() {
+  for (let i = 0; i < enemies.length; i++) {
+    enemies[i].xPos += enemies[i].xVelocity
+    enemies[i].yPos += enemies[i].yVelocity
   }
 }
 
-function handleTouchmove(e) {
-  e.preventDefault()
-  if (isThrowing) {
-    ball.xVelocity = (e.touches[0].clientX - touchstart.xPos) / BALL_SPEED_DIVISOR
-    ball.yVelocity = (e.touches[0].clientY - touchstart.yPos) / BALL_SPEED_DIVISOR
-  }
-}
-
-function decideEnemyPaths() {
-  if (ball.yPos < canvas.height - (canvas.height / 5)) {
-    let closestEnemyToBall = getClosestEnemyToSpot(ball)
-    closestEnemyToBall.xVelocity = (ball.xPos - closestEnemyToBall.xPos) / ENEMY_SPEED_DIVISOR
-    closestEnemyToBall.yVelocity = (ball.yPos - closestEnemyToBall.yPos) / ENEMY_SPEED_DIVISOR
-  }
-  let openTeammate = getOpenTeammate()
-  if (openTeammate) {
-    let closestEnemyToOpenTeammate = getClosestEnemyToSpot(getOpenTeammate())
-    if (!isClose(closestEnemyToOpenTeammate, openTeammate)) {
-      closestEnemyToOpenTeammate.xVelocity = (openTeammate.xPos - closestEnemyToOpenTeammate.xPos) / ENEMY_SPEED_DIVISOR
-      closestEnemyToOpenTeammate.yVelocity = (openTeammate.yPos - closestEnemyToOpenTeammate.yPos) / ENEMY_SPEED_DIVISOR  
-    } else {
-      closestEnemyToOpenTeammate.xVelocity = 0
-      closestEnemyToOpenTeammate.yVelocity = 0 
-    }
+function moveBall() {
+  ball.xPos += ball.xVelocity
+  ball.yPos += ball.yVelocity
+  if (ball.yVelocity != 0) {
+    ball.yVelocity -= GRAVITY
   }
 }
 
@@ -165,16 +152,25 @@ function isBallInWall(wall) {
 }
 
 function handleBallInWall(wall) {
+  if (ball.yVelocity != 0) {
+    document.getElementById("bounce").play()
+  }
   switch (wall) {
     case WALLS.right:
-      bounceBallLeft()
+      ball.xVelocity = -Math.abs(ball.xVelocity) + (ball.xVelocity / POST_BOUNCE_SPEED_DIVISOR)
       break
     case WALLS.bottom:
-      bounceBallUp()
+      ball.yVelocity = -Math.abs(ball.yVelocity) + (ball.yVelocity / POST_BOUNCE_SPEED_DIVISOR)
       break
     case WALLS.left:
-      bounceBallRight()
+      ball.xVelocity = Math.abs(ball.xVelocity) - (ball.xVelocity / POST_BOUNCE_SPEED_DIVISOR)
       break
+  }
+  if (ball.yVelocity < 0 && ball.yVelocity > -MINIMUM_SPEED) {
+    ball.yVelocity = 0
+  }
+  if (Math.abs(ball.xVelocity) < MINIMUM_SPEED) {
+    ball.xVelocity = 0
   }
 }
 
@@ -209,6 +205,47 @@ function decideBallPath() {
   }   
 }
 
+function calculateBallPath(target) {
+  let xChange = ballPossessor.xPos - target.xPos
+  let yChange = ballPossessor.yPos - target.yPos
+  return calculateXYVelocity(xChange, yChange, ENEMY_BALL_SPEED, GRAVITY)
+}
+
+function calculateXYVelocity(xChange, yChange, speed, gravity) {
+  // https://physics.stackexchange.com/questions/56265/how-to-get-the-angle-needed-for-a-projectile-to-pass-through-a-given-point-for-t
+  let radians = Math.atan(
+    (speed ** 2 / (gravity * xChange)) - 
+    (
+      (
+        (speed ** 2 * (speed ** 2 - 2 * gravity * yChange)) / 
+        (gravity ** 2 * xChange ** 2) 
+      ) 
+      - 1
+    ) 
+    ** 0.5
+  )
+  let xVelocity = (ball.xPos <= canvas.width / 2 ? Math.cos(radians) : -Math.cos(radians)) * speed
+  let yVelocity = Math.sin(radians) * speed
+  return {
+    xVelocity: xVelocity,
+    yVelocity: yVelocity
+  }
+}
+
+function isPathClear(path, obstacles) {
+  let scout = JSON.parse(JSON.stringify(ball))
+  for (let i = 0; i < 1000; i++) {
+    scout.xPos += path.xVelocity
+    scout.yPos += path.yVelocity
+    for (let j = 0; j < obstacles.length; j++) {
+      if (isClose(scout, obstacles[j])) {
+        return false    
+      }
+    }  
+  }
+  return true
+}
+
 function isBallInHoop() {
   if (
     ball.yVelocity > 0 &&
@@ -234,19 +271,14 @@ function handleBallInHoop() {
   document.getElementById("swish").play()
 }
 
-function moveEnemies() {
-  for (let i = 0; i < enemies.length; i++) {
-    enemies[i].xPos += enemies[i].xVelocity
-    enemies[i].yPos += enemies[i].yVelocity
-  }
-}
-
-function moveBall() {
-  ball.xPos += ball.xVelocity
-  ball.yPos += ball.yVelocity
-  if (ball.yVelocity != 0) {
-    ball.yVelocity -= GRAVITY
-  }
+function addTeammate(touchstart) {
+  teammates.push({
+    xPos: touchstart.xPos,
+    yPos: touchstart.yPos
+  })
+  if (teammates.length == 3) {
+    teammates.shift()     
+  }  
 }
 
 function drawEnemies() {
@@ -280,132 +312,8 @@ function drawBall() {
   context.fill()
 }
 
-////////////////////////
-
-function addTeammate(touchstart) {
-  teammates.push({
-    xPos: touchstart.xPos,
-    yPos: touchstart.yPos
-  })
-  if (teammates.length == 3) {
-    teammates.shift()     
-  }  
-}
-
-function getClosestEnemyToSpot(spot) {
-  let closestToSpotMetadata = { 
-    enemyId: -1, 
-    distanceToSpot: canvas.height + canvas.width 
-  }
-  for (let i = 0; i < enemies.length; i++) {
-    let enemy = enemies[i]
-    let distanceToSpot = getDistance(spot, enemy)
-    if (
-      closestToSpotMetadata.enemyId == -1 || 
-      distanceToSpot < closestToSpotMetadata.distanceToSpot
-    ) {
-      closestToSpotMetadata.enemyId = i
-      closestToSpotMetadata.distanceToSpot = distanceToSpot
-    }
-  }
-  return enemies[closestToSpotMetadata.enemyId]
-}
-
-function getOpenTeammate() {
-  for (let i = 0; i < teammates.length; i++) {
-    let isOpen = true
-    for (let j = 0; j < teammates.length; j++) {
-      if (isClose(teammates[i], enemies[j])) {
-        isOpen = false
-      }
-    }
-    if (isOpen) {
-      return teammates[i]
-    }
-  }
-  return null
-}
-
 function isClose(objectA, objectB) {
   return getDistance(objectA, objectB) < PIXEL_SHIM * 2
-}
-
-function calculateBallPath(target) {
-  let xChange = ballPossessor.xPos - target.xPos
-  let yChange = ballPossessor.yPos - target.yPos
-  return calculateXYVelocity(xChange, yChange, ENEMY_BALL_SPEED, GRAVITY)
-}
-
-function isPathClear(path, obstacles) {
-  let scout = JSON.parse(JSON.stringify(ball))
-  for (let i = 0; i < 1000; i++) {
-    scout.xPos += path.xVelocity
-    scout.yPos += path.yVelocity
-    for (let j = 0; j < obstacles.length; j++) {
-      if (isClose(scout, obstacles[j])) {
-        return false    
-      }
-    }  
-  }
-  return true
-}
-
-function bounceBallUp() {
-  ball.yVelocity = -Math.abs(ball.yVelocity) + (ball.yVelocity / POST_BOUNCE_SPEED_DIVISOR)
-  executeBounceEffects()
-}
-
-function bounceBallRight() {
-  ball.xVelocity = Math.abs(ball.xVelocity) - (ball.xVelocity / POST_BOUNCE_SPEED_DIVISOR)
-  executeBounceEffects()
-}
-
-function bounceBallLeft() {
-  ball.xVelocity = -Math.abs(ball.xVelocity) + (ball.xVelocity / POST_BOUNCE_SPEED_DIVISOR)
-  executeBounceEffects()
-}
-
-function bounceBallDown() {
-  ball.yVelocity = Math.abs(ball.yVelocity) - (ball.yVelocity / POST_BOUNCE_SPEED_DIVISOR)
-  executeBounceEffects()
-}
-
-function executeBounceEffects() {
-  if (
-    ball.yVelocity < 0 
-    && ball.yVelocity > -MINIMUM_SPEED
-  ) {
-    ball.yVelocity = 0
-  }
-  if (Math.abs(ball.xVelocity) < MINIMUM_SPEED) {
-    ball.xVelocity = 0
-  }
-  if (ball.yVelocity != 0) {
-    document.getElementById("bounce").play()
-  }
-}
-
-/////////////////////////////////////////////////////////////////////
-
-function calculateXYVelocity(xChange, yChange, speed, gravity) {
-  // https://physics.stackexchange.com/questions/56265/how-to-get-the-angle-needed-for-a-projectile-to-pass-through-a-given-point-for-t
-  let radians = Math.atan(
-    (speed ** 2 / (gravity * xChange)) - 
-    (
-      (
-        (speed ** 2 * (speed ** 2 - 2 * gravity * yChange)) / 
-        (gravity ** 2 * xChange ** 2) 
-      ) 
-      - 1
-    ) 
-    ** 0.5
-  )
-  let xVelocity = (ball.xPos <= canvas.width / 2 ? Math.cos(radians) : -Math.cos(radians)) * speed
-  let yVelocity = Math.sin(radians) * speed
-  return {
-    xVelocity: xVelocity,
-    yVelocity: yVelocity
-  }
 }
 
 function getDistance(objectA, objectB) {

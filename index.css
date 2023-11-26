@@ -1,15 +1,7 @@
 body {
-  background-color: DimGray;
+  background-color: Cornflowerblue;
 }
 
-#blueScore {
-  color: Cornflowerblue;
-}
-
-#redScore {
-  color: IndianRed;
-}
-
-#scoreMedian {
+#scoreboard {
   color: White;
 }

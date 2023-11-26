@@ -1,24 +1,16 @@
 <!DOCTYPE html>
 <html lang="eng">
     <head>
-        <title>
-          Minimalist Basketball
-        </title>
+        <title>bird basketball</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="index.css">
         <script src="index.js"></script>
     </head>
-    <body onload="initializeGame()">
-        <div>
-          <span id="blueScore">
-            0
-          </span>
-          <span id="scoreMedian">
-            -
-          </span>
-          <span id="redScore">
-            0
-          </span>  
+    <body onload="startGame()">
+        <div id="scoreboard">
+          <span id="blueScore">0</span>
+          <span>-</span>
+          <span id="redScore">0</span>  
         </div>  
         <canvas id="canvas">
           <audio id="bounce" src="sounds/bounce.mp3"></audio>
