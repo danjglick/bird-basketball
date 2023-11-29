@@ -3,5 +3,11 @@ body {
 }
 
 #scoreboard {
-  color: White;
+  color: white;
+}
+
+#grass {
+  color: green;
+  height: 100rm;
+  width: 100rm;
 }

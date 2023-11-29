@@ -7,14 +7,17 @@
         <script src="index.js"></script>
     </head>
     <body onload="startGame()">
-        <div id="scoreboard">
+        <button id="addBird" type="button">add bird</button>
+        <span id="scoreboard">
           <span id="blueScore">0</span>
           <span>-</span>
           <span id="redScore">0</span>  
-        </div>  
+        </span>
+        <button id="removeBird" type="button">remove bird</button>  
         <canvas id="canvas">
           <audio id="bounce" src="sounds/bounce.mp3"></audio>
           <audio id="swish" src="sounds/swish.mp3"></audio>
         </canvas>
+        <div id="grass"></div>
     </body>
 </html>

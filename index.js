@@ -10,13 +10,13 @@ const BALL_RADIUS = visualViewport.width / 20
 const POST_BOUNCE_SPEED_DIVISOR = 2
 const ENEMY_SPEED_DIVISOR = 50
 const BALL_SPEED_DIVISOR = 2
-const MINIMUM_SPEED = 20
+const MINIMUM_SPEED = 30
 const ENEMY_BALL_SPEED = 100
 const BLUE_COLOR = "Purple"
 const RED_COLOR = "IndianRed"
 const HOOP = {
-  xPos: visualViewport.width / 3,
-  yPos: PIXEL_SHIM,
+  xPosition: visualViewport.width / 3,
+  yPosition: PIXEL_SHIM,
   src: "images/hoop.png",
   diameter: 100
 }
@@ -24,30 +24,17 @@ const HOOP = {
 let canvas
 let context
 let ball = {
-  xPos: visualViewport.width / 2,
-  yPos: visualViewport.height - 50,
+  xPosition: visualViewport.width / 2,
+  yPosition: visualViewport.height - 50,
   xVelocity: 0,
   yVelocity: 0,
-  color: "Orange"
+  color: "orange"
 }
-let enemies = [
-  {
-    xPos: visualViewport.width / 6,
-    yPos: visualViewport.height / 1.65,
-    xVelocity: 0,
-    yVelocity: 0
-  },
-  {
-    xPos: visualViewport.width - (visualViewport.width / 4.5),
-    yPos: visualViewport.height / 1.65,
-    xVelocity: 0,
-    yVelocity: 0
-  }
-]
+let enemies = []
 let teammates = []
 let touchstart = {
-  xPos: 0,
-  yPos: 0
+  xPosition: 0,
+  yPosition: 0
 }
 let redScore = 0
 let blueScore = 0
@@ -62,16 +49,15 @@ function startGame() {
   context = canvas.getContext('2d')
   document.addEventListener("touchstart", handleTouchstart)
   document.addEventListener("touchmove", handleTouchmove, { passive: false })
+  document.getElementById("addBird").addEventListener("click", addBird)
+  document.getElementById("removeBird").addEventListener("click", removeBird)
   loopGame()
 }
 
 function handleTouchstart(e) {
-  touchstart.xPos = e.touches[0].clientX
-  touchstart.yPos = e.touches[0].clientY
-  if (
-    isClose(touchstart, ball) ||
-    touchstart.yPos > canvas.height - canvas.height / 5
-  ) {
+  touchstart.xPosition = e.touches[0].clientX
+  touchstart.yPosition = e.touches[0].clientY
+  if (isClose(touchstart, ball) || (touchstart.yPosition > canvas.height - canvas.height / 5)) {
     isThrowing = true
   } else {
     addTeammate(touchstart)
@@ -81,15 +67,15 @@ function handleTouchstart(e) {
 function handleTouchmove(e) {
   e.preventDefault()
   if (isThrowing) {
-    ball.xVelocity = (e.touches[0].clientX - touchstart.xPos) / BALL_SPEED_DIVISOR
-    ball.yVelocity = (e.touches[0].clientY - touchstart.yPos) / BALL_SPEED_DIVISOR
+    ball.xVelocity = (e.touches[0].clientX - touchstart.xPosition) / BALL_SPEED_DIVISOR
+    ball.yVelocity = (e.touches[0].clientY - touchstart.yPosition) / BALL_SPEED_DIVISOR
   }
 }
 
 function loopGame() {
   context.clearRect(0, 0, canvas.width, canvas.height)
-  moveEnemies()
   moveBall()
+  moveEnemies()
   for (let i = 0; i < Object.keys(WALLS).length; i++) {
     let wall = WALLS[Object.keys(WALLS)[i]]
     if (isBallInWall(wall)) {
@@ -115,35 +101,35 @@ function loopGame() {
   setTimeout(loopGame, MILLISECONDS_PER_FRAME)
 }
 
-function moveEnemies() {
-  for (let i = 0; i < enemies.length; i++) {
-    enemies[i].xPos += enemies[i].xVelocity
-    enemies[i].yPos += enemies[i].yVelocity
-  }
-}
-
 function moveBall() {
-  ball.xPos += ball.xVelocity
-  ball.yPos += ball.yVelocity
+  ball.xPosition += ball.xVelocity
+  ball.yPosition += ball.yVelocity
   if (ball.yVelocity != 0) {
     ball.yVelocity -= GRAVITY
   }
 }
 
+function moveEnemies() {
+  for (let i = 0; i < enemies.length; i++) {
+    enemies[i].xPosition += enemies[i].xVelocity
+    enemies[i].yPosition += enemies[i].yVelocity
+  }
+}
+
 function isBallInWall(wall) {
   switch(wall) {
-    case WALLS.right:
-      if (ball.xPos > canvas.width - PIXEL_SHIM) {
+    case WALLS.bottom:
+      if (ball.yPosition > canvas.height - PIXEL_SHIM) {
         return true
       }
       break
-    case WALLS.bottom:
-      if (ball.yPos > canvas.height - PIXEL_SHIM) {
+    case WALLS.right:
+      if (ball.xPosition > canvas.width - PIXEL_SHIM) {
         return true
       }
       break
     case WALLS.left:
-      if (ball.xPos < PIXEL_SHIM) {
+      if (ball.xPosition < PIXEL_SHIM) {
         return true
       }
       break
@@ -156,21 +142,23 @@ function handleBallInWall(wall) {
     document.getElementById("bounce").play()
   }
   switch (wall) {
-    case WALLS.right:
-      ball.xVelocity = -Math.abs(ball.xVelocity) + (ball.xVelocity / POST_BOUNCE_SPEED_DIVISOR)
-      break
     case WALLS.bottom:
-      ball.yVelocity = -Math.abs(ball.yVelocity) + (ball.yVelocity / POST_BOUNCE_SPEED_DIVISOR)
+      console.log(ball.yVelocity)
+      if (ball.yVelocity < MINIMUM_SPEED) {
+        ball.yVelocity = 0
+      } else {
+        ball.yVelocity = -ball.yVelocity / 1.5
+      }
+      if (Math.abs(ball.xVelocity) < MINIMUM_SPEED) {
+        ball.xVelocity = 0
+      } 
+      break
+    case WALLS.right:
+      ball.xVelocity = -ball.xVelocity / 1.1
       break
     case WALLS.left:
-      ball.xVelocity = Math.abs(ball.xVelocity) - (ball.xVelocity / POST_BOUNCE_SPEED_DIVISOR)
+      ball.xVelocity = Math.abs(ball.xVelocity) / 1.1
       break
-  }
-  if (ball.yVelocity < 0 && ball.yVelocity > -MINIMUM_SPEED) {
-    ball.yVelocity = 0
-  }
-  if (Math.abs(ball.xVelocity) < MINIMUM_SPEED) {
-    ball.xVelocity = 0
   }
 }
 
@@ -206,8 +194,8 @@ function decideBallPath() {
 }
 
 function calculateBallPath(target) {
-  let xChange = ballPossessor.xPos - target.xPos
-  let yChange = ballPossessor.yPos - target.yPos
+  let xChange = ballPossessor.xPosition - target.xPosition
+  let yChange = ballPossessor.yPosition - target.yPosition
   return calculateXYVelocity(xChange, yChange, ENEMY_BALL_SPEED, GRAVITY)
 }
 
@@ -224,7 +212,7 @@ function calculateXYVelocity(xChange, yChange, speed, gravity) {
     ) 
     ** 0.5
   )
-  let xVelocity = (ball.xPos <= canvas.width / 2 ? Math.cos(radians) : -Math.cos(radians)) * speed
+  let xVelocity = (ball.xPosition <= canvas.width / 2 ? Math.cos(radians) : -Math.cos(radians)) * speed
   let yVelocity = Math.sin(radians) * speed
   return {
     xVelocity: xVelocity,
@@ -235,8 +223,8 @@ function calculateXYVelocity(xChange, yChange, speed, gravity) {
 function isPathClear(path, obstacles) {
   let scout = JSON.parse(JSON.stringify(ball))
   for (let i = 0; i < 1000; i++) {
-    scout.xPos += path.xVelocity
-    scout.yPos += path.yVelocity
+    scout.xPosition += path.xVelocity
+    scout.yPosition += path.yVelocity
     for (let j = 0; j < obstacles.length; j++) {
       if (isClose(scout, obstacles[j])) {
         return false    
@@ -247,13 +235,15 @@ function isPathClear(path, obstacles) {
 }
 
 function isBallInHoop() {
-  if (
-    ball.yVelocity > 0 &&
-    ball.xPos > HOOP.xPos &&
-    ball.xPos < HOOP.xPos + HOOP.diameter &&
-    ball.yPos > HOOP.yPos &&
-    ball.yPos < HOOP.yPos + HOOP.diameter
-  ) {
+  isWithinLeftBorder = ball.xPosition > HOOP.xPosition
+  isWithinRightBorder = ball.xPosition < HOOP.xPosition + HOOP.diameter
+  isWithinTopBorder = ball.yPosition > HOOP.yPosition
+  isWithinBottomBorder = ball.yPosition < HOOP.yPosition + HOOP.diameter
+  isHorizontallyAligned = isWithinLeftBorder && isWithinRightBorder
+  isVerticallyAligned = isWithinTopBorder && isWithinBottomBorder
+  isFullyAligned = isHorizontallyAligned && isVerticallyAligned
+  isHeadingDown = ball.yVelocity > 0
+  if (isFullyAligned && isHeadingDown) {
     return true
   }
   return false
@@ -272,19 +262,43 @@ function handleBallInHoop() {
 }
 
 function addTeammate(touchstart) {
-  teammates.push({
-    xPos: touchstart.xPos,
-    yPos: touchstart.yPos
-  })
-  if (teammates.length == 3) {
-    teammates.shift()     
+  if (touchstart.yPostion > 40) {  
+    teammates.push({
+      xPosition: touchstart.xPosition,
+      yPosition: touchstart.yPosition
+    })
+    if (teammates.length == 3) {
+      teammates.shift()     
+    }
   }  
+}
+
+function addBird(e) {
+  enemies.push({
+    xPosition: Math.random() * visualViewport.width,
+    yPosition: Math.random() * visualViewport.height,
+    xVelocity: 0,
+    yVelocity: 0
+  })
+  resetScore()  
+}
+
+function removeBird(e) {
+  enemies.pop()
+  resetScore()
+}
+
+function resetScore() {
+  blueScore = 0
+  document.getElementById("blueScore").innerHTML = String(blueScore)
+  redScore = 0
+  document.getElementById("redScore").innerHTML = String(redScore)
 }
 
 function drawEnemies() {
   for (let i = 0; i < enemies.length; i++) {
     context.beginPath()
-    context.arc(enemies[i].xPos, enemies[i].yPos, BALL_RADIUS, 0, 2 * Math.PI)
+    context.arc(enemies[i].xPosition, enemies[i].yPosition, BALL_RADIUS, 0, 2 * Math.PI)
     context.fillStyle = RED_COLOR
     context.fill()
   }
@@ -293,7 +307,7 @@ function drawEnemies() {
 function drawTeammates() {
   for (let i = 0; i < teammates.length; i++) {    
     context.beginPath()
-    context.arc(teammates[i].xPos, teammates[i].yPos, BALL_RADIUS, 0, 2 * Math.PI)
+    context.arc(teammates[i].xPosition, teammates[i].yPosition, BALL_RADIUS, 0, 2 * Math.PI)
     context.fillStyle = BLUE_COLOR
     context.fill()
   }
@@ -302,12 +316,12 @@ function drawTeammates() {
 function drawHoop() {
   let element = document.createElement("IMG")
   element.src = HOOP.src
-  context.drawImage(element, HOOP.xPos, HOOP.yPos, HOOP.diameter, HOOP.diameter)
+  context.drawImage(element, HOOP.xPosition, HOOP.yPosition, HOOP.diameter, HOOP.diameter)
 }
 
 function drawBall() {
   context.beginPath()
-  context.arc(ball.xPos, ball.yPos, BALL_RADIUS, 0, 2 * Math.PI)
+  context.arc(ball.xPosition, ball.yPosition, BALL_RADIUS, 0, 2 * Math.PI)
   context.fillStyle = ball.color
   context.fill()
 }
@@ -319,8 +333,8 @@ function isClose(objectA, objectB) {
 function getDistance(objectA, objectB) {
   return (
     (
-      Math.abs(objectA.xPos - objectB.xPos) ** 2 + 
-      Math.abs(objectA.yPos - objectB.yPos) ** 2
+      Math.abs(objectA.xPosition - objectB.xPosition) ** 2 + 
+      Math.abs(objectA.yPosition - objectB.yPosition) ** 2
     ) 
     ** 0.5
   )  
