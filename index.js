@@ -14,15 +14,18 @@ const MINIMUM_SPEED = 30
 const ENEMY_BALL_SPEED = 100
 const BLUE_COLOR = "Purple"
 const RED_COLOR = "IndianRed"
-const HOOP = {
-  xPosition: visualViewport.width / 3,
-  yPosition: PIXEL_SHIM,
-  src: "images/hoop.png",
-  diameter: 100
-}
 
 let canvas
 let context
+let hoop = {
+  xPosition: visualViewport.width / 3,
+  yPosition: 200,
+  xVelocity: 0,
+  yVelocity: 0,
+  path: [],
+  image_source: "images/hoop.png",
+  diameter: 100
+}
 let ball = {
   xPosition: visualViewport.width / 2,
   yPosition: visualViewport.height - 50,
@@ -51,6 +54,7 @@ function startGame() {
   document.addEventListener("touchmove", handleTouchmove, { passive: false })
   document.getElementById("addBird").addEventListener("click", addBird)
   document.getElementById("removeBird").addEventListener("click", removeBird)
+  setPath(hoop)
   loopGame()
 }
 
@@ -74,6 +78,7 @@ function handleTouchmove(e) {
 
 function loopGame() {
   context.clearRect(0, 0, canvas.width, canvas.height)
+  // moveHoop()
   moveBall()
   moveEnemies()
   for (let i = 0; i < Object.keys(WALLS).length; i++) {
@@ -99,6 +104,51 @@ function loopGame() {
   drawTeammates()
   drawBall()
   setTimeout(loopGame, MILLISECONDS_PER_FRAME)
+}
+
+function setPath(object) {
+  let path = []
+  numberOfPathPoints = getRandomIntegerBetween(6, 9)
+  for (let i = 0; i < numberOfPathPoints; i++) {
+    path.push({
+      xPosition: getRandomIntegerBetween(PIXEL_SHIM, visualViewport.width - PIXEL_SHIM),
+      yPosition: getRandomIntegerBetween(PIXEL_SHIM, visualViewport.height - PIXEL_SHIM),
+      isActive: true
+    })
+  }
+  path.push({
+    xPosition: object.xPosition,
+    yPosition: object.yPosition
+  })
+  return path
+}
+
+function getRandomIntegerBetween(min, max) {
+  return Math.round(Math.random() * (max - min) + min)
+}
+
+function moveHoop() {
+  // for(i = 0; i < hoop.path.length; i++) {
+  //   if 
+  // }
+  // setObjectTowardsSpotAtSpeed(hoop, setPath[0], .01)
+  // hoop.xPosition += hoop.xVelocity
+  // hoop.yPosition += hoop.yVelocity
+  // if (isClose(hoop, hoop.path[0]) {
+  //   hoop.path[0].
+  // }
+}
+
+function setObjectTowardsSpotAtSpeed(object, spot, speed) {
+  object.xVelocity = (spot.xPosition - object.xPosition) * speed
+  object.yVelocity = (spot.yPosition - object.yPosition) * speed
+}
+
+function isClose(objectA, objectB, max_distance = PIXEL_SHIM) {
+  return (
+    Math.abs(objectA.xPosition - objectB.xPosition) < max_distance &&
+    Math.abs(objectA.yPosition - objectB.yPosition) < max_distance
+  )
 }
 
 function moveBall() {
@@ -143,7 +193,6 @@ function handleBallInWall(wall) {
   }
   switch (wall) {
     case WALLS.bottom:
-      console.log(ball.yVelocity)
       if (ball.yVelocity < MINIMUM_SPEED) {
         ball.yVelocity = 0
       } else {
@@ -177,7 +226,7 @@ function handleBallInPlayer() {
 }
 
 function decideBallPath() {
-  let shotPath = calculateBallPath(HOOP)
+  let shotPath = calculateBallPath(hoop)
   if (isPathClear(shotPath, teammates)) {
     ball.xVelocity = shotPath.xVelocity
     ball.yVelocity = shotPath.yVelocity    
@@ -235,10 +284,10 @@ function isPathClear(path, obstacles) {
 }
 
 function isBallInHoop() {
-  isWithinLeftBorder = ball.xPosition > HOOP.xPosition
-  isWithinRightBorder = ball.xPosition < HOOP.xPosition + HOOP.diameter
-  isWithinTopBorder = ball.yPosition > HOOP.yPosition
-  isWithinBottomBorder = ball.yPosition < HOOP.yPosition + HOOP.diameter
+  isWithinLeftBorder = ball.xPosition > hoop.xPosition
+  isWithinRightBorder = ball.xPosition < hoop.xPosition + hoop.diameter
+  isWithinTopBorder = ball.yPosition > hoop.yPosition
+  isWithinBottomBorder = ball.yPosition < hoop.yPosition + hoop.diameter
   isHorizontallyAligned = isWithinLeftBorder && isWithinRightBorder
   isVerticallyAligned = isWithinTopBorder && isWithinBottomBorder
   isFullyAligned = isHorizontallyAligned && isVerticallyAligned
@@ -315,8 +364,8 @@ function drawTeammates() {
 
 function drawHoop() {
   let element = document.createElement("IMG")
-  element.src = HOOP.src
-  context.drawImage(element, HOOP.xPosition, HOOP.yPosition, HOOP.diameter, HOOP.diameter)
+  element.src = hoop.image_source
+  context.drawImage(element, hoop.xPosition, hoop.yPosition, hoop.diameter, hoop.diameter)
 }
 
 function drawBall() {
