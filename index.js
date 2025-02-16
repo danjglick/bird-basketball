@@ -1,13 +1,14 @@
 const PIXEL_SHIM = visualViewport.width / 10
 const BALL_SPEED_DIVISOR = 2
 const GRAVITY = 10
-const MINIMUM_SPEED = 30
+const MINIMUM_SPEED = 13
+const GROUND_COLOR = "#36454F"
 
 let canvas;
 let context;
 let ball = {
   xPosition: visualViewport.width / 2,
-  yPosition: visualViewport.height - 80,
+  yPosition: visualViewport.height - 70,
   xVelocity: 0,
   yVelocity: 0,
   radius: visualViewport.width / 20,
@@ -22,7 +23,7 @@ let isShooting = false
 function startGame() {
   canvas = document.getElementById("canvas")
   canvas.width = visualViewport.width
-  canvas.height = visualViewport.height - document.getElementById("ground").offsetHeight
+  canvas.height = visualViewport.height
   context = canvas.getContext('2d')
   document.addEventListener("touchstart", handleTouchstart, { passive: false })
   document.addEventListener("touchmove", handleTouchmove, { passive: false })
@@ -50,6 +51,7 @@ function handleTouchmove(e) {
 function loopGame() {
   context.clearRect(0, 0, canvas.width, canvas.height)
   moveBall()
+  drawGround()
   drawBall()
   handleDeflections()
   requestAnimationFrame(loopGame)
@@ -58,9 +60,16 @@ function loopGame() {
 function moveBall() {
   ball.xPosition += ball.xVelocity
   ball.yPosition += ball.yVelocity
-  if (ball.yVelocity != 0) {
+  if (ball.yVelocity != 0) {  
     ball.yVelocity += GRAVITY
-  }
+  }  
+}
+
+function drawGround() {
+  context.beginPath()
+  context.rect(0, canvas.height - 100, canvas.width, 100)
+  context.fillStyle = GROUND_COLOR
+  context.fill()
 }
 
 function drawBall() {
@@ -71,7 +80,7 @@ function drawBall() {
 }
 
 function handleDeflections() {
-  if (ball.yPosition >= canvas.height) {
+  if (ball.yPosition >= canvas.height - 100) {
     if (ball.yVelocity < MINIMUM_SPEED) {
       ball.yVelocity = 0
     } else {
